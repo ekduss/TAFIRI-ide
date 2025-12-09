@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TAFIRI-ide-user</title>
+
+    <script src="https://code.jquery.com/jquery-latest.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="static/bootstrap/css/bootstrap/bootstrap.css">
+    <script type="text/javascript" src="static/bootstrap/js/bootstrap/bootstrap.bundle.js"></script>
+    <link rel="stylesheet" href="static/leaflet/leaflet.css">
+    <script type="text/javascript" src="static/leaflet/leaflet.js"></script>
+    <script src="static/leaflet-panel-layers/leaflet-panel-layers.src.js"></script>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
+
+    <style>
+        body {
+            margin: 0;
+        }
+
+        #map {
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #custom-layer {
+            width: auto;
+            height: auto;
+            padding: 15px;
+        }
+
+        #custom-layer li:hover {
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+    <script>
+        const map = L.map('map').setView([-7.16, 41.25], 7);
+        const osm = L.tileLayer('http://mt0.google.com/vt/lyrs=y&hl=en&x={x}&y={y}&z={z}', {
+            maxZoom: 19,
+            crs: L.CRS.EPSG4326
+        }).addTo(map);
+        map.doubleClickZoom.disable();
+
+        const customLayer = L.control();
+        customLayer.onAdd = () => {
+            const customDiv = L.DomUtil.create('div');
+            customDiv.id = 'custom-layer'
+            return customDiv;
+        }
+        customLayer.addTo(map);
+
+        const customButton = L.control({ position: 'bottomleft' });
+        customButton.onAdd = () => {
+            const buttonDiv = L.DomUtil.create('div', 'button-wrapper');
+            buttonDiv.innerHTML = `<button class="btn btn-primary btn-sm" onclick='location.href="index.html"'>back</button>`;
+            buttonDiv.addEventListener('click', () => console.log('click'))
+            return buttonDiv;
+        };
+        customButton.addTo(map)
+
+        let url_endpoint = 'https://dl.s-dev.ust21.kr/tz-bucket/test/';
+        const latLngBounds = L.latLngBounds([
+            [-10.0, 38.2],
+            [-4.8, 43]
+        ]);
+
+        function getCustomDiv() {
+            let chl_list = ['chl_20251030', 'chl_20251101', 'chl_20251105'];
+            let sst_list = ['sst_20251030', 'sst_20251101', 'sst_20251105', 'sst_20251110'];
+
+            let allListDiv = ``;
+            let allList = chl_list.concat(sst_list);
+            for (let i = 0; i < allList.length; i++) {
+                let thisList = `
+                    <li class="list-group-item" id="li_` + allList[i] + `">
+                        <div class="form-check" style="display: flex; align-items: center;">
+                            <input class="form-check-input" type="checkbox" id="` + allList[i] + `" value="` + allList[i] + `">
+                            <label class="form-check-label px-2 pt-1" for="` + allList[i] + `">` + allList[i] + `</label>
+                        </div>
+                    </li>
+                    `
+                allListDiv += thisList
+            }
+
+            return `
+            <div id="layer" class="card" style="width: 300px; max-height: 400px; overflow:auto;">
+                <div class="card-header p-2 px-3" style="display: flex; align-items: center; justify-content: space-between; border-bottom:none;">
+                    <span style="font-size: 15px;">TAFIRI-front</span>
+                    <div>
+                        <button id="reset-btn" style="background: none; border: none;">
+                            <i class="bi bi-arrow-clockwise"></i>
+                        </button>
+                        <button id="dropdown-btn" style="border: 1px solid #ccc;">
+                            <i id="drowdown-icon" class="bi bi-chevron-up"></i>
+                    </button>
+                    </div>
+                </div>
+                <div class="card-header">
+                    <div class="btn-group" role="group">
+                        <input type="radio" class="btn-check" name="btnradio" id="btnradio-all" value="all" autocomplete="off" checked>
+                        <label class="btn btn-sm btn-outline-secondary" for="btnradio-all">all</label>
+                        <input type="radio" class="btn-check" name="btnradio" id="btnradio-chl" value="chl" autocomplete="off">
+                        <label class="btn btn-sm btn-outline-secondary" for="btnradio-chl">chl-a</label>
+                        <input type="radio" class="btn-check" name="btnradio" id="btnradio-sst" value="sst" autocomplete="off">
+                        <label class="btn btn-sm btn-outline-secondary" for="btnradio-sst">sst</label>
+                    </div>
+                </div>
+                <ul class="list-group list-group-flush" id="ul-list">` + allListDiv + `</ul>
+            </div>`
+        }
+
+        $(document).ready(function () {
+            const custom = document.getElementById("custom-layer");
+            custom.insertAdjacentHTML("afterbegin", getCustomDiv());
+
+            $(".btn-check").click(function () {
+                let selected = $(this).val();
+                let ulNode = document.getElementById("ul-list");
+                let checkInputNode = ulNode.getElementsByClassName("form-check-input");
+                let imgList = [];
+                let checkedImgList = [];
+
+                for (let i = 0; i < checkInputNode.length; i++) {
+                    document.getElementById('li_' + checkInputNode[i].value).style.display = 'block';
+                }
+
+                if ('all' != selected) {
+                    resetImg()
+                    for (let i = 0; i < checkInputNode.length; i++) {
+                        let str = checkInputNode[i].value;
+                        if (!str.startsWith(selected)) {
+                            document.getElementById('li_' + str).style.display = 'none';
+                        } else {
+                            imgList.push(str)
+                        }
+                    }
+                } else {
+                    for (let i = 0; i < checkInputNode.length; i++) {
+                        imgList.push(checkInputNode[i].value)
+                    }
+                }
+
+                for (let i = 0; i < imgList.length; i++) {
+                    let checked = $("#" + imgList[i]).is(":checked");
+                    if (checked) {
+                        checkedImgList.push(imgList[i])
+                    }
+                }
+
+                if (checkedImgList.length != 0) {
+                    checkedImgList.forEach(img => displayImg(img));
+                }
+            })
+
+            $(".form-check-input").click(function () {
+                let imgId = $(this).val()
+                let isChecked = $(this).prop("checked");
+
+                if (isChecked)
+                    displayImg(imgId)
+                else {
+                    map.eachLayer((layer) => {
+                        let checkUrl = layer._url;
+                        if (checkUrl.search(imgId) != -1) {
+                            layer.remove();
+                        }
+                    });
+                }
+            })
+
+            $("#reset-btn").click(function () {
+                $(".form-check-input").prop("checked", false);
+                resetImg()
+            })
+
+            $("#dropdown-btn").click(function () {
+                let list_display = document.getElementById("ul-list").style.display;
+
+                if (list_display == 'none') {
+                    document.getElementById("ul-list").style.display = "block"
+                    $("#drowdown-icon").addClass("bi-chevron-up")
+                    $("#drowdown-icon").removeClass("bi-chevron-down")
+                } else {
+                    document.getElementById("ul-list").style.display = "none";
+                    $("#drowdown-icon").addClass("bi-chevron-down")
+                    $("#drowdown-icon").removeClass("bi-chevron-up")
+                }
+            })
+        })
+
+        function displayImg(id) {
+            let imgName = id;
+            let imgUrl = url_endpoint + imgName + ".png";
+
+            let newOverlay = L.imageOverlay(imgUrl, latLngBounds, {
+                opacity: 1,
+                interactive: true
+            }).addTo(map)
+                .on('click', function (e) {
+                    let lat = e.latlng.lat.toFixed(4);
+                    let lon = e.latlng.lng.toFixed(4);
+                    L.popup().setLatLng(e.latlng).setContent(`[Latitude] ${lat} [Longtitude] ${lon}`).openOn(map);
+                });
+        }
+
+        function resetImg() {
+            map.eachLayer((layer) => {
+                let checkUrl = layer._url;
+                if (checkUrl.search('google') == -1) {
+                    layer.remove();
+                }
+            });
+        }
+    </script>
+</body>
+
+</html>

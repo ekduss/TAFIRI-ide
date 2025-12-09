@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TAFIRI-ide-admin</title>
+
+    <script src="https://code.jquery.com/jquery-latest.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="static/bootstrap/css/bootstrap/bootstrap.css">
+    <script type="text/javascript" src="static/bootstrap/js/bootstrap/bootstrap.bundle.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.43.3/ace.js"></script>
+
+    <link rel="stylesheet" href="static/leaflet/leaflet.css">
+    <script type="text/javascript" src="static/leaflet/leaflet.js"></script>
+    <script src="static/leaflet-panel-layers/leaflet-panel-layers.src.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
+
+    <style>
+        html, body {
+            height: 100%; /* Ensure html and body take full viewport height */
+            width: 100%;
+        }
+
+        .div-leaflet #map {
+            height: 75vh;
+            width: 100vw;
+        }
+
+        .div-editor {
+            height: 25%; /* The container is now 50% of the body's height */
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            background: black;
+        }
+
+        .div-editor #editor {
+            height: 100%;
+            width: 100%;
+            margin: 5px;
+        }
+
+        .div-editor #runButton {
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+<div class="div-editor">
+    <div id="editor">// 레이어 초기화
+map.eachLayer((layer) => {
+    let checkUrl = layer._url;
+    if (checkUrl.search('google') == -1) {
+        layer.remove();
+    }
+})
+
+// ex : chl_20251030.png, chl_20251101.png, chl_20251105.png
+let imageName = "chl_20251030.png"
+let imageOverlay = L.imageOverlay(endpoint+imageName, latLngBounds, {
+    opacity: 1,
+    interactive: true
+}).addTo(map)
+    .on('click', function (e) {
+        let lat = e.latlng.lat.toFixed(4);
+        let lon = e.latlng.lng.toFixed(4);
+        L.popup().setLatLng(e.latlng).setContent(`[Latitude] ${lat} [Longtitude] ${lon}`).openOn(map);
+    });
+    </div>
+    <input type="button" id="runButton" value="Run" class="btn btn-secondary"/>
+</div>
+<div class="div-leaflet">
+    <div id="map"></div>
+</div>
+<script>
+    // ace-editor js
+    ace.require("ace/ext/language_tools");
+    ace.require("ace/ext/emmet");
+
+    let editor = ace.edit("editor");
+    editor.setTheme("ace/theme/twilight");
+    editor.session.setMode("ace/mode/javascript");
+    editor.setOption("fontSize", "13px");
+
+    $("#runButton").click(function() {
+        let aceContent = editor.getValue();
+        eval(aceContent)
+    });
+
+    // leaflet js
+    const map = L.map('map').setView([-7.16, 41.25], 7);
+    const osm = L.tileLayer('http://mt0.google.com/vt/lyrs=y&hl=en&x={x}&y={y}&z={z}', {
+        maxZoom: 19,
+        crs: L.CRS.EPSG4326
+    }).addTo(map);
+    
+    const customButton = L.control({ position: 'bottomleft' });
+    customButton.onAdd = () => {
+        const buttonDiv = L.DomUtil.create('div', 'button-wrapper');
+        buttonDiv.innerHTML = `<button class="btn btn-primary btn-sm" onclick='location.href="index.html"'>back</button>`;
+        buttonDiv.addEventListener('click', () => console.log('click'))
+        return buttonDiv;
+    };
+    customButton.addTo(map)
+
+    const endpoint = "https://dl.s-dev.ust21.kr/tz-bucket/test/"
+    const latLngBounds = L.latLngBounds([
+        [-10.0, 38.2],
+        [-4.8, 43]
+    ]);
+</script>
+</body>
+</html>

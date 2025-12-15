@@ -53,12 +53,31 @@
             margin-top: 6px;
             margin-bottom: 6px;
             margin-left: 6px;
-            background-color: #6c757d;
+            background-color: #3a3e42;
             padding: 5px;
         }
 
         .div-editor #runButton {
             margin: 5px;
+        }
+
+        ::-webkit-scrollbar {
+            display: block;
+        }
+        ::-webkit-scrollbar-track, ::-webkit-scrollbar-button {
+            display: none;
+        }
+        ::-webkit-scrollbar-thumb {
+            background-color: gray;
+        }
+
+        [contenteditable="true"]:empty:before {
+            content: attr(placeholder);
+            color: #5f656b;
+        }
+
+        .CodeMirror-scrollbar-filler {
+            background-color: gray;
         }
     </style>
 </head>
@@ -87,7 +106,7 @@ let imageOverlay = L.imageOverlay(endpoint+imageName, latLngBounds, {
         L.popup().setLatLng(e.latlng).setContent(`[Latitude] ${lat} [Longtitude] ${lon}`).openOn(map);
     });    
         </textarea>
-        <div id="logOutput"></div>
+        <div id="logOutput" contentEditable='true' placeholder='Console log' style="pointer-events: none;"></div>
         <input type="button" id="runButton" value="Run" class="btn btn-secondary" />
     </div>
 
@@ -117,15 +136,16 @@ let imageOverlay = L.imageOverlay(endpoint+imageName, latLngBounds, {
             eval(aceContent)
         });
 
-        function logToScreen(message) {
-            const logContainer = document.getElementById('logOutput');
-            const children = logContainer.children;
+        // function logToScreen(message) {
+        //     const logContainer = document.getElementById('logOutput');
+        //     const children = logContainer.children;
 
-            const newLog = document.createElement('p');
-            newLog.textContent = message;
-            logContainer.appendChild(newLog);
-        }
-        console.log = logToScreen;
+        //     const newLog = document.createElement('p');
+        //     newLog.textContent = message;
+        //     newLog.disabled=true;
+        //     logContainer.appendChild(newLog); // <<< 추가하지 말고 덮어씌우는 걸로 찾아보기
+        // }
+        // console.log = logToScreen;
 
         // leaflet js
         const map = L.map('map').setView([-7.16, 41.25], 7);
